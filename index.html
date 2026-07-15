@@ -3,17 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cozy Desk Dashboard</title>
+    <title>Cozy 3D Desk Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
 
     <div class="background-overlay" id="bgOverlay"></div>
 
+    <canvas id="pet-3d-canvas"></canvas>
+
+    <div class="pet-bubble" id="petBubble">Miau! ✨</div>
+
     <main class="desktop" id="desktop">
         
-        <div class="widget glass-widget" id="widget-clock" style="top: 10%; left: 10%;">
+        <div class="widget glass-widget" id="widget-clock" style="top: 15%; left: 10%;">
             <div class="widget-header">
                 <span class="widget-title">Time</span>
                 <button class="close-btn" onclick="minimizeWidget('widget-clock')">×</button>
@@ -24,23 +31,23 @@
             </div>
         </div>
 
-        <div class="widget glass-widget" id="widget-spotify" style="top: 10%; left: 45%;">
+        <div class="widget glass-widget" id="widget-spotify" style="top: 15%; left: 55%;">
             <div class="widget-header">
                 <span class="widget-title">Spotify Player</span>
                 <button class="close-btn" onclick="minimizeWidget('widget-spotify')">×</button>
             </div>
             <div class="widget-content spotify-content">
                 <div id="spotify-player-container">
-                    <iframe id="spotify-iframe" src="https://open.spotify.com/embed/playlist/37i9dQZF1DWWQRwui0ExPn?utm_source=generator&theme=0" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                    <iframe id="spotify-iframe" src="about:blank" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
                 </div>
                 <div class="spotify-input-group">
-                    <input type="text" id="spotify-link-input" placeholder="Spotify Album/Playlist Link einfügen...">
+                    <input type="text" id="spotify-link-input" placeholder="Spotify Link einfügen...">
                     <button onclick="updateSpotifyLink()">Laden</button>
                 </div>
             </div>
         </div>
 
-        <div class="widget glass-widget" id="widget-notes" style="top: 45%; left: 10%;">
+        <div class="widget glass-widget" id="widget-notes" style="top: 50%; left: 30%;">
             <div class="widget-header">
                 <span class="widget-title">Notes</span>
                 <button class="close-btn" onclick="minimizeWidget('widget-notes')">×</button>
@@ -50,20 +57,13 @@
             </div>
         </div>
 
-        <div id="pet-container" class="pet-character">
-            <img id="pet-img" src="assets/pets/cat/cat-idle.svg" alt="Pet">
-            <div class="pet-bubble" id="petBubble">Miau! ✨</div>
-        </div>
-
     </main>
 
     <footer class="dock">
         <button class="dock-btn" onclick="restoreWidget('widget-clock')">🕒 Uhr</button>
         <button class="dock-btn" onclick="restoreWidget('widget-spotify')">🎵 Musik</button>
         <button class="dock-btn" onclick="restoreWidget('widget-notes')">📝 Notizen</button>
-        
         <div class="dock-divider"></div>
-        
         <label class="dock-btn upload-btn">
             🖼️ Background
             <input type="file" id="bg-upload" accept="image/*" style="display: none;">
