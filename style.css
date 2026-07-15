@@ -1,28 +1,50 @@
-/* Grunddesign & CSS Variablen */
+/* ==========================================
+   1. SYSTEM-RESETS & GLOBALE VARIABLEN
+   ========================================== */
 :root {
+    /* Standard-Hintergrundbild (Weiches, stimmungsvolles Lofi-Bild) */
     --bg-image: url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?q=80&w=1974&auto=format&fit=crop');
-    --glass-bg: rgba(255, 255, 255, 0.45);
-    --glass-border: rgba(255, 255, 255, 0.3);
-    --text-color: #1d1d1f;
-    --accent-color: #8e8ffa;
-    --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+    
+    /* Hochwertiger Dark-Glassmorphism (macOS Style) */
+    --glass-bg: rgba(18, 18, 24, 0.45);
+    --glass-header: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-inner-border: rgba(255, 255, 255, 0.04);
+    
+    /* Typografie & Farben */
+    --text-primary: #f5f5f7;
+    --text-secondary: #8e8e93;
+    --accent: #9d9eff;
+    --accent-glow: rgba(157, 158, 255, 0.3);
+    
+    /* Weiche Schatten für Tiefenwirkung */
+    --shadow-premium: 0 16px 40px rgba(0, 0, 0, 0.3), 
+                      0 1px 3px rgba(0, 0, 0, 0.2), 
+                      inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    --transition-smooth: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 body, html {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: #0f0f11;
+    background-color: #0d0d11;
+    color: var(--text-primary);
+    user-select: none; /* Verhindert unschönes Markieren beim Verschieben */
 }
 
-/* Hintergrund-Ebene */
+/* ==========================================
+   2. HINTERGRUND & DESKTOP AREA
+   ========================================== */
 .background-overlay {
     position: fixed;
     top: 0;
@@ -32,102 +54,156 @@ body, html {
     background-image: var(--bg-image);
     background-size: cover;
     background-position: center;
-    transition: background-image 0.5s ease-in-out;
+    filter: brightness(0.75) contrast(1.05); /* Optimiert die Lesbarkeit der Widgets */
+    transition: background-image 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1;
 }
 
-/* Desktop-Spielfeld */
 .desktop {
     position: relative;
-    width: 100%;
-    height: calc(100% - 70px);
-    z-index: 2;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10; /* Über dem 3D-Canvas */
+    pointer-events: none; /* Klicks gehen durch den Desktop auf das Canvas durch */
 }
 
-/* Das "Glass" Widget */
+/* 3D-Canvas für die Katze */
+#pet-3d-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 5; /* Zwischen Hintergrund und Widgets */
+    pointer-events: auto; /* Klicks auf die Katze abfangen */
+}
+
+/* ==========================================
+   3. PREMIUM GLASS-WIDGETS
+   ========================================== */
 .widget {
     position: absolute;
-    width: 300px;
+    width: 320px;
     background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
     border: 1px solid var(--glass-border);
     border-radius: 20px;
-    box-shadow: var(--shadow);
-    z-index: 10;
-    transition: transform 0.2s ease, opacity 0.2s ease;
+    box-shadow: var(--shadow-premium);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease;
     overflow: hidden;
+    pointer-events: auto; /* Macht Widgets wieder klickbar */
 }
 
+/* Header-Leiste im macOS-Stil */
 .widget-header {
-    padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.2);
+    padding: 14px 18px;
+    background: var(--glass-header);
+    border-bottom: 1px solid var(--glass-inner-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: move;
-    border-bottom: 1px solid var(--glass-border);
+    cursor: grab;
+}
+
+.widget-header:active {
+    cursor: grabbing;
 }
 
 .widget-title {
+    font-size: 13px;
     font-weight: 600;
-    font-size: 14px;
-    color: var(--text-color);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
 }
 
+/* Cleanisierter Schließen-Knopf */
 .close-btn {
-    background: none;
+    background: rgba(255, 255, 255, 0.08);
     border: none;
-    font-size: 18px;
-    color: var(--text-color);
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    color: var(--text-primary);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.2s;
+    transition: var(--transition-smooth);
 }
 
 .close-btn:hover {
-    opacity: 1;
+    background: rgba(235, 87, 87, 0.3);
+    color: #ff6b6b;
 }
 
 .widget-content {
-    padding: 16px;
-    color: var(--text-color);
+    padding: 20px;
 }
 
-/* Widget-Spezifische Styles */
+/* ==========================================
+   4. WIDGET SPEZIFISCHES DESIGN
+   ========================================== */
+
+/* 4.1 Uhr & Datum */
 .clock-content {
     text-align: center;
+    padding: 24px 20px;
 }
 
 #clock-time {
-    font-size: 3rem;
+    font-size: 3.2rem;
     font-weight: 700;
-    letter-spacing: -1px;
+    letter-spacing: -2px;
+    background: linear-gradient(180deg, #ffffff 0%, #d2d2d7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
 }
 
 #clock-date {
     font-size: 0.9rem;
-    opacity: 0.8;
-    margin-top: 4px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-top: 8px;
 }
 
+/* 4.2 Sticky Notes */
 textarea {
     width: 100%;
-    height: 120px;
+    height: 130px;
     background: transparent;
     border: none;
     resize: none;
     outline: none;
-    color: var(--text-color);
+    color: var(--text-primary);
     font-size: 0.95rem;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
-/* Spotify Widget Anpassungen */
+/* Cleanere Scrollbar für die Notizen */
+textarea::-webkit-scrollbar {
+    width: 5px;
+}
+textarea::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+/* 4.3 Spotify Widget */
 .spotify-content {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 16px;
+}
+
+#spotify-player-container {
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-inner-border);
 }
 
 .spotify-input-group {
@@ -137,99 +213,116 @@ textarea {
 
 .spotify-input-group input {
     flex: 1;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 0.8rem;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
     outline: none;
-    color: var(--text-color);
+    color: var(--text-primary);
+    transition: var(--transition-smooth);
+}
+
+.spotify-input-group input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
 .spotify-input-group button {
-    background: var(--text-color);
-    color: white;
+    background: var(--text-primary);
+    color: #0d0d11;
     border: none;
-    border-radius: 8px;
-    padding: 6px 12px;
+    border-radius: 10px;
+    padding: 8px 16px;
     cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: 600;
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: var(--transition-smooth);
 }
 
-/* Tier-Charakter */
-.pet-character {
-    position: absolute;
-    bottom: 80px;
-    right: 100px;
-    width: 70px;
-    height: 70px;
-    cursor: pointer;
-    z-index: 100;
-    transition: transform 0.1s ease;
+.spotify-input-group button:hover {
+    background: var(--accent);
+    color: #ffffff;
+    box-shadow: 0 0 12px var(--accent-glow);
 }
 
-.pet-character img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
+/* ==========================================
+   5. DEKORATIVE & INTERAKTIVE ELEMENTE
+   ========================================== */
 
+/* 3D-Katzen Sprechblase */
 .pet-bubble {
-    position: absolute;
-    top: -40px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: white;
-    color: #1d1d1f;
-    padding: 6px 12px;
-    border-radius: 12px;
-    font-size: 12px;
+    position: fixed;
+    background: rgba(20, 20, 25, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    padding: 10px 16px;
+    border-radius: 16px;
+    font-size: 13px;
     font-weight: 600;
-    white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-premium);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
 }
 
-/* Dock Styling */
+/* ==========================================
+   6. PREMIUM FLOATING DOCK
+   ========================================== */
 .dock {
     position: fixed;
-    bottom: 15px;
+    bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
+    background: rgba(18, 18, 24, 0.3);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
     border: 1px solid var(--glass-border);
-    padding: 8px 16px;
-    border-radius: 24px;
+    padding: 10px 20px;
+    border-radius: 28px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    z-index: 1000;
-    box-shadow: var(--shadow);
+    gap: 12px;
+    z-index: 99999; /* Immer ganz oben */
+    box-shadow: var(--shadow-premium);
+    pointer-events: auto; /* Dock ist klickbar */
 }
 
 .dock-btn {
     background: transparent;
     border: none;
-    padding: 8px 16px;
-    border-radius: 16px;
-    color: var(--text-color);
+    padding: 10px 18px;
+    border-radius: 18px;
+    color: var(--text-primary);
     font-weight: 600;
     font-size: 13px;
     cursor: pointer;
-    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition-smooth);
 }
 
 .dock-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-4px);
+}
+
+.dock-btn:active {
+    transform: translateY(-1px);
 }
 
 .dock-divider {
     width: 1px;
-    height: 24px;
+    height: 28px;
     background: var(--glass-border);
+}
+
+/* Styling für den File-Upload Button */
+.upload-btn {
+    position: relative;
+    overflow: hidden;
 }
