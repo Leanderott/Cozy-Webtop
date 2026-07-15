@@ -1,7 +1,6 @@
 // ==========================================
-// 1. STANDARD DASHBOARD LOGIK (Drag, Save, etc.)
+// 1. DASHBOARD & WIDGET LOGIK
 // ==========================================
-
 const widgets = document.querySelectorAll('.widget');
 let activeWidget = null;
 let offsetX = 0; let offsetY = 0;
@@ -18,7 +17,7 @@ widgets.forEach(widget => {
     header.addEventListener('mousedown', (e) => {
         activeWidget = widget;
         widgets.forEach(w => w.style.zIndex = 10);
-        widget.style.zIndex = 12; // Immer über dem Canvas (z-index 5) und anderen Widgets
+        widget.style.zIndex = 12;
         offsetX = e.clientX - widget.getBoundingClientRect().left;
         offsetY = e.clientY - widget.getBoundingClientRect().top;
     });
@@ -40,18 +39,16 @@ document.addEventListener('mouseup', () => {
     }
 });
 
-// Uhr, Notes, Background & Spotify wie gehabt...
-function updateClock() {
+// UI Helper (Uhr, Dock, Background, Spotify, Notes)
+setInterval(() => {
     document.getElementById('clock-time').textContent = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     document.getElementById('clock-date').textContent = new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
-}
-setInterval(updateClock, 1000); updateClock();
+}, 1000);
 
 function minimizeWidget(id) { document.getElementById(id).style.display = 'none'; }
 function restoreWidget(id) { document.getElementById(id).style.display = 'block'; }
 
-const bgUpload = document.getElementById('bg-upload');
-bgUpload.addEventListener('change', (e) => {
+document.getElementById('bg-upload').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
@@ -62,8 +59,9 @@ bgUpload.addEventListener('change', (e) => {
         reader.readAsDataURL(file);
     }
 });
-const savedBg = localStorage.getItem('custom-bg');
-if (savedBg) document.documentElement.style.setProperty('--bg-image', `url(${savedBg})`);
+if (localStorage.getItem('custom-bg')) {
+    document.documentElement.style.setProperty('--bg-image', `url(${localStorage.getItem('custom-bg')})`);
+}
 
 const notes = document.getElementById('notes-textarea');
 notes.value = localStorage.getItem('saved-notes') || '';
@@ -81,183 +79,98 @@ document.getElementById('spotify-iframe').src = localStorage.getItem('spotify-em
 
 
 // ==========================================
-// 2. 3D PET ENGINE (Three.js)
+// 2. 3D SCENE & PET INITIALIZATION
 // ==========================================
-
-let scene, camera, renderer, clock, mixer, petModel;
-let raycaster, mouse; // Für Klicks auf die 3D-Katze
-let targetX = 0, targetY = -2; // Zielkoordinaten für die Bewegung
-let currentAction, idleAction, walkAction;
-
+let scene, camera, renderer, myCat;
+let raycaster, mouse, time = 0;
+let targetX = 0;
 const petBubble = document.getElementById('petBubble');
 
 function init3D() {
     const canvas = document.getElementById('pet-3d-canvas');
-    clock = new THREE.Clock();
-
-    // Szene erstellen
     scene = new THREE.Scene();
 
-    // Kamera (Orthographisch für den perfekten Flat-3D-Look)
     const aspect = window.innerWidth / window.innerHeight;
-    const d = 5;
+    const d = 6; // Sichtfeld etwas vergrößert für die größere Katze
     camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
-    camera.position.set(0, 5, 10);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(0, 4, 10);
+    camera.lookAt(0, -1, 0);
 
-    // Renderer (mit transparentem Hintergrund alpha: true)
     renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     // Licht
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-    scene.add(ambientLight);
-    const dirLight = new THREE.DirectionLight(0xffffff, 0.6);
-    dirLight.position.set(5, 10, 5);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+    const dirLight = new THREE.DirectionLight(0xffffff, 0.5);
+    dirLight.position.set(5, 10, 8);
     scene.add(dirLight);
 
-    // Raycaster für Klick-Erkennung initialisieren
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
 
-    // 3D-Modell laden
-    const loader = new THREE.GLTFLoader();
-    
-    // WICHTIG: Pfad zu deinem 3D-Modell (.glb oder .gltf)
-    loader.load('assets/pets/cat/cat.glb', function (gltf) {
-        petModel = gltf.scene;
-        petModel.scale.set(1.5, 1.5, 1.5); // Größe anpassen
-        petModel.position.set(0, -2, 0); // Startposition
-        scene.add(petModel);
+    // HIER ERSCHAFFEN WIR DIE KATZE AUS DER EXTERNEN DATEI
+    myCat = new KawaiiCat(scene);
 
-        // Animationen einrichten (falls das Modell welche hat!)
-        mixer = new THREE.AnimationMixer(petModel);
-        if (gltf.animations.length > 0) {
-            // Wir nehmen an, Animation 0 ist Idle, Animation 1 ist Walk
-            idleAction = mixer.clipAction(gltf.animations[0]);
-            if (gltf.animations[1]) {
-                walkAction = mixer.clipAction(gltf.animations[1]);
-            }
-            idleAction.play();
-            currentAction = idleAction;
-        }
-
-        animate();
-    }, undefined, function (error) {
-        console.error('Fehler beim Laden des 3D-Modells:', error);
+    window.addEventListener('resize', () => {
+        const aspect = window.innerWidth / window.innerHeight;
+        camera.left = -d * aspect; camera.right = d * aspect;
+        camera.top = d; camera.bottom = -d;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Event Listener
-    window.addEventListener('resize', onWindowResize);
-    window.addEventListener('click', onPetClick);
+    window.addEventListener('click', onDesktopClick);
+    animate();
 }
 
-function onWindowResize() {
-    const aspect = window.innerWidth / window.innerHeight;
-    const d = 5;
-    camera.left = -d * aspect;
-    camera.right = d * aspect;
-    camera.top = d;
-    camera.bottom = -d;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
+function onDesktopClick(event) {
+    if (event.target.closest('.widget') || event.target.closest('.dock')) return;
 
-// 3D-Animation Loop
-function animate() {
-    requestAnimationFrame(animate);
-
-    const delta = clock.getDelta();
-    if (mixer) mixer.update(delta);
-
-    if (petModel) {
-        // Sanfte Drehung und Bewegung zum Zielpunkt (targetX, targetY)
-        const dx = targetX - petModel.position.x;
-        const dy = targetY - petModel.position.y;
-        const distance = Math.sqrt(dx*dx + dy*dy);
-
-        if (distance > 0.1) {
-            // Katze bewegt sich
-            petModel.position.x += (dx / distance) * 0.02;
-            petModel.position.y += (dy / distance) * 0.02;
-
-            // Drehung der Katze in Gehrichtung (Winkel berechnen)
-            const angle = Math.atan2(dx, dy);
-            petModel.rotation.y = angle;
-
-            if (walkAction && currentAction !== walkAction) {
-                fadeToAction(walkAction, 0.2);
-            }
-        } else {
-            // Katze steht still
-            if (idleAction && currentAction !== idleAction) {
-                fadeToAction(idleAction, 0.2);
-            }
-        }
-
-        // Aktualisiere die Position der HTML-Sprechblase, damit sie über dem 3D-Modell schwebt
-        updateBubblePosition();
-    }
-
-    renderer.render(scene, camera);
-}
-
-// Übergang zwischen Animationen (z.B. von Gehen zu Stehen)
-function fadeToAction(nextAction, duration) {
-    if (currentAction === nextAction) return;
-    const previousAction = currentAction;
-    currentAction = nextAction;
-    if (previousAction) previousAction.fadeOut(duration);
-    currentAction.reset().fadeIn(duration).play();
-}
-
-// Klick auf die 3D-Katze erkennen
-function onPetClick(event) {
-    if (!petModel) return;
-
-    // Normalisierte Mauskoordinaten berechnen
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(petModel.children, true);
+
+    // Prüfen ob die Katze (oder ein Teil davon) angeklickt wurde
+    const intersects = raycaster.intersectObjects(myCat.group.children, true);
 
     if (intersects.length > 0) {
-        // GETROFFEN! Die Katze wurde angeklickt.
+        myCat.triggerJump();
         showBubble();
     } else {
-        // Wenn man irgendwo auf den Desktop klickt, läuft die Katze dorthin!
-        // Wir rechnen den Klick in 3D-Koordinaten um:
-        targetX = mouse.x * (camera.right);
-        targetY = mouse.y * (camera.top) - 1.5; // Leicht versetzt, damit sie auf dem Boden steht
+        targetX = mouse.x * camera.right; // Katze soll dorthin laufen
     }
 }
 
 function showBubble() {
-    const texts = ["Miau! 🐾", "Ich kann mich in 3D drehen! 😎", "Kratz mich am Ohr!", "Zzz... 💤"];
+    const texts = ["Miau! ✨", "Lofi-Vibes... ☕", "Streichel mich! 🐾", "Zzz...", "Salto! 🚀"];
     petBubble.textContent = texts[Math.floor(Math.random() * texts.length)];
     petBubble.style.opacity = '1';
-    setTimeout(() => petBubble.style.opacity = '0', 3000);
+    setTimeout(() => petBubble.style.opacity = '0', 3500);
 }
 
-// Sprechblase an 3D-Modell anheften
 function updateBubblePosition() {
-    if (!petModel) return;
-    
-    // 3D Position des Modells in 2D Screen-Pixel umrechnen
+    if (!myCat || !myCat.headGroup) return;
     const vector = new THREE.Vector3();
-    petModel.getWorldPosition(vector);
+    myCat.headGroup.getWorldPosition(vector);
     vector.project(camera);
-
     const x = (vector.x * .5 + .5) * window.innerWidth;
     const y = (vector.y * -.5 + .5) * window.innerHeight;
-
     petBubble.style.left = `${x}px`;
-    petBubble.style.top = `${y - 80}px`; // Etwas über dem Kopf platziert
+    petBubble.style.top = `${y - 120}px`;
 }
 
-// Start der 3D Engine
-window.onload = () => {
-    init3D();
-};
+function animate() {
+    requestAnimationFrame(animate);
+    time += 0.02;
+    
+    // Wir übergeben die Zeit und das Ziel an unsere externe Klasse
+    if (myCat) {
+        myCat.update(time, targetX);
+        updateBubblePosition();
+    }
+    
+    renderer.render(scene, camera);
+}
+
+window.onload = init3D;
